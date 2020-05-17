@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ML Pipeline Preparation
-# Follow the instructions below to help you create your ML pipeline.
-
 ### 1. Import libraries and load data from database.
 
 # import libraries
 import pandas as pd
 import numpy as np
 import re
+import sys
 from sqlalchemy import create_engine
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -34,17 +32,21 @@ url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-
 
 
 ### 2. Write a function to load your data
-def load_data():
+def load_data(database_path):
     """load data from database
     INPUT
+    database_path - Path to the database created in the data processes 
     OUTPUT
     X - features dataset
     y - Target variables dataset
     """
-    engine = create_engine('sqlite:///data/DisasterResponse.db')
+    name = 'sqlite:///' + database_path
+    engine = create_engine(name)
+   
     df = pd.read_sql_table('clean_dataset', con=engine).head(10000)
     X = df['message']
     y = df.drop(['original','genre','message','offer','request'], axis=1)
+    y = y.astype(int)
     return X, y
 
 
@@ -75,9 +77,9 @@ def tokenize(text):
 ### 4. Build a machine learning pipeline
 
 def model_pipeline():
- """
-We create a pipeline from where the model shall be run
- """
+    """
+    We create a pipeline from where the model shall be run
+    """
     pipeline = Pipeline([
         ('features', FeatureUnion([
 
@@ -118,24 +120,13 @@ def get_results(y_test, y_pred):
     print('Aggregated f_score:', results['f_score'].mean())
     print('Aggregated precision:', results['precision'].mean())
     print('Aggregated recall:', results['recall'].mean())
-    return results
-
-results = get_results(y_test, y_pred)
-results
+    #return results
 
 
-### 8. Build a class for extracting the starting verb of a text.
-
+### 8. Build a class for extracting the starting verb of a text, creating a new feature for the ML classifier.
+    
 class StartingVerbExtractor(BaseEstimator, TransformerMixin):
- """
- Starting Verb Extractor class
-    
- This class extract the starting verb of a sentence,
- creating a new feature for the ML classifier
- """
-    
     def starting_verb(self, text):
-    
         sentence_list = nltk.sent_tokenize(text)
         for sentence in sentence_list:
             pos_tags = nltk.pos_tag(tokenize(sentence))
@@ -158,35 +149,37 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
 
 def main():
     """Load the data, run the model and save model"""
-    
-    print('Loading data...)
-    X, y = load_data()
-    y= y.astype(int)
-
-    # split data, train and predict
-    print('Splitting data...)
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
-    
-    print('Building model...')
-    model = model_pipeline()
+    if len(sys.argv) == 3:
+        database_path, model_path = sys.argv[1:]
           
-    print('Training model...')
-    model.fit(X_train, y_train)
-          
-    print('Evaluating model...')
-    y_pred = model.predict(X_test)
-    
-    print('Trained model saved!')
-    pickle.dump(model, open('models/classifier.pkl', 'wb'))
+        print('Loading data...')
+        X, y = load_data(database_path)
+              
+        print('Splitting data...')
+        X_train, X_test, y_train, y_test = train_test_split(X, y)
+        
+        print('Building model...')
+        model = model_pipeline()
+        
+        print('Training model...')
+        model.fit(X_train, y_train)
+        
+        print('Evaluating model...')
+        y_pred = model.predict(X_test)
+        get_results(y_test, y_pred)
+        
 
-    
+        
+        pickle.dump(model, open('models/classifier.pkl', 'wb'))
+        print('Trained model saved!')
+       
+
+    else:
+        print('Error, missing file paths')
+
 
 if __name__ == '__main__':
     main()
-
-
-
-
 
 
 
