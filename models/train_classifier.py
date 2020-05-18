@@ -74,7 +74,28 @@ def tokenize(text):
     return clean_tokens
 
 
-### 4. Build a machine learning pipeline
+### 4. Build a class for extracting the starting verb of a text, creating a new feature for the ML classifier.
+    
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+    def starting_verb(self, text):
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+            first_word, first_tag = pos_tags[0]
+            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
+                return True
+        return False
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
+
+
+    
+### 5. Build a machine learning pipeline
 
 def model_pipeline():
     """
@@ -97,8 +118,22 @@ def model_pipeline():
     return pipeline
 
 
+### 6. Build a machine learning model using the pipeline created before and grid searching
 
-### 5. Write a function to obtain the f1 score, precision and recall for each output category of the dataset.
+def build_model():
+    """Return Grid Search model with pipeline and Classifier"""
+
+    model = model_pipeline()
+
+    parameters = {'clf__estimator__max_depth': [10, 50, None],
+                  'clf__estimator__min_samples_leaf':[2, 5, 10]}
+
+    model = GridSearchCV(model, parameters)
+    
+    return model
+
+
+### 7. Write a function to obtain the f1 score, precision and recall for each output category of the dataset.
 
 def get_results(y_test, y_pred):
     """ Obtain the metrics to evaluate the model
@@ -123,29 +158,7 @@ def get_results(y_test, y_pred):
     #return results
 
 
-### 8. Build a class for extracting the starting verb of a text, creating a new feature for the ML classifier.
-    
-class StartingVerbExtractor(BaseEstimator, TransformerMixin):
-    def starting_verb(self, text):
-        sentence_list = nltk.sent_tokenize(text)
-        for sentence in sentence_list:
-            pos_tags = nltk.pos_tag(tokenize(sentence))
-            first_word, first_tag = pos_tags[0]
-            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
-                return True
-        return False
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X_tagged = pd.Series(X).apply(self.starting_verb)
-        return pd.DataFrame(X_tagged)
-
-
-
-
-### 9.Create the main class
+### 8.Create the main class
 
 def main():
     """Load the data, run the model and save model"""
@@ -159,7 +172,7 @@ def main():
         X_train, X_test, y_train, y_test = train_test_split(X, y)
         
         print('Building model...')
-        model = model_pipeline()
+        model = build_model()
         
         print('Training model...')
         model.fit(X_train, y_train)
@@ -168,19 +181,15 @@ def main():
         y_pred = model.predict(X_test)
         get_results(y_test, y_pred)
         
-
         
         pickle.dump(model, open('models/classifier.pkl', 'wb'))
         print('Trained model saved!')
        
-
     else:
         print('Error, missing file paths')
 
 
 if __name__ == '__main__':
     main()
-
-
 
 
