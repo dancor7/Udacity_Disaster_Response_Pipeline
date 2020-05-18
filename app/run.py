@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 
 import sys
 
-sys.path.append("/home/workspace/models")
+sys.path.append("../models")
 
 from starting_verb_extractor import StartingVerbExtractor
 
