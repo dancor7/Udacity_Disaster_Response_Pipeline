@@ -48,6 +48,12 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+    categories = df[df.columns[5:]]
+    categories = categories.astype(int)
+    categories_counts = categories.mean()*categories.shape[0]
+    categories_names = list(categories_counts.index)
+    top_cat_count = categories_counts.nlargest(5)
+    top_cat_names = list(top_cat_count.index)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -63,13 +69,50 @@ def index():
             'layout': {
                 'title': 'Distribution of Message Genres',
                 'yaxis': {
-                    'title': "Count"
+                    'title': "Genre Count"
                 },
                 'xaxis': {
-                    'title': "Genre"
+                    'title': "Genre Names"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=categories_names,
+                    y=categories_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of total Message categories',
+                'yaxis': {
+                    'title': "Category Count"
+                },
+                'xaxis': {
+                    'title': "Category Names"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=top_cat_names,
+                    y=top_cat_count
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 5 message categories',
+                'yaxis': {
+                    'title': "Category Count"
+                },
+                'xaxis': {
+                    'title': "Category Names"
                 }
             }
         }
+        
     ]
     
     # encode plotly graphs in JSON
